@@ -25,8 +25,6 @@ def get_url(url, user_agent):
 def replay(hook_id):
     hook = Hook.objects.get(id=hook_id)
     now = timezone.now()
-    pth = sys.argv[-1]
-    fp = open(hook.replay_log, "r")
     # todo: softcode
     fieldnames=[
         "ip",
@@ -43,7 +41,7 @@ def replay(hook_id):
         "header_url",
         "user_agent"
     ]
-    reader = csv.DictReader(fp, fieldnames=fieldnames, delimiter=" ", quotechar='"')
+    reader = csv.DictReader(hook.replay_log, fieldnames=fieldnames, delimiter=" ", quotechar='"')
     reader = list(reader)[-hook.number_to_replay:]
     fp.close()
     processed = []
