@@ -112,15 +112,14 @@ ROOT_URLCONF = "project.urls"
 INSTALLED_APPS = (
     "captainhook",
 
+    "south",
+
     "django.contrib.auth",
-    "django.contrib.comments",
     "django.contrib.contenttypes",
-    "django.contrib.flatpages",
     "django.contrib.humanize",
     "django.contrib.sessions",
     "django.contrib.sites",
     "django.contrib.staticfiles",
-    "django.contrib.sitemaps",
     "django.contrib.admin",
     "django.contrib.messages",
 

@@ -7,6 +7,5 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     (r'^admin/', include(admin.site.urls)),
-    url(r'^hook/', include('github_hook.urls')),
     url(r'^', include('captainhook.urls')),
 )

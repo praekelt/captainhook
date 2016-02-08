@@ -1,6 +1,6 @@
 from django.conf.urls import patterns, url, include
 
-from captain.views import HookView
+from captainhook.views import HookView
 
 
 urlpatterns = patterns('',
