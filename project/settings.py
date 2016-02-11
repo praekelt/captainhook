@@ -197,7 +197,7 @@ CACHES = {
     }
 }
 
-SLACK_TOKEN = "xoxb-18589237378-8aoRddJJjaSz9J3NFWrZyuBy"
+SLACK_TOKEN = ""
 
 import djcelery
 djcelery.setup_loader()
