@@ -6,7 +6,6 @@ pip:
  - jinja2
 dependencies:
  - libjpeg62
- - zlib
  - memcached
  - nginx
  - libxslt
