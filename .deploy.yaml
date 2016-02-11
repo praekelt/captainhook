@@ -8,7 +8,6 @@ dependencies:
  - libjpeg62
  - memcached
  - nginx
- - libjpeg-turbo
  - libgpg-error-devel
  - libgcrypt-devel
  - libxml2-devel
