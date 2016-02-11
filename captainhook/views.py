@@ -42,7 +42,7 @@ class HookView(GenericAPIView):
             elif repo and user:
                 hook = Hook.objects.get(user=user, repo=repo)
             if hook:
-                hook.execute()
+                hook.execute(payload)
         except Hook.DoesNotExist:
             pass
         return Response({})
