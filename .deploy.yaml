@@ -9,3 +9,4 @@ dependencies:
  - memcached
  - nginx
  - redis-server
+ - postgresql-server-dev-9.3
