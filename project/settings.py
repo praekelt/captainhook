@@ -8,7 +8,6 @@ from collections import OrderedDict
 # Paths
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
-
 def abspath(*args):
     """
     Convert relative paths to absolute paths relative to PROJECT_ROOT
@@ -19,6 +18,8 @@ PROJECT_MODULE = "captainhook"
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
+
+ALLOWED_HOSTS = ['*']
 
 # For Postgres (not location aware) do from command line
 # echo "CREATE USER mothership WITH PASSWORD 'mothership'" | sudo -u postgres psql

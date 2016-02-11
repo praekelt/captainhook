@@ -1,25 +1,12 @@
 buildscript: scripts/build
 postinstall: scripts/postinstall.sh
-package_target: rpm
+package_target: deb
 pip:
  - gunicorn
  - jinja2
 dependencies:
- - libjpeg
- - zlib
+ - libjpeg62
  - memcached
  - nginx
- - libxslt
- - libaio
- - libjpeg-turbo
- - libgpg-error-devel
- - libgcrypt-devel
- - zlib-devel
- - libxml2-devel
- - libxslt
- - libxslt-devel
- - libjpeg-turbo-devel
- - python-devel
- - libffi-devel
- - openssl-devel
  - redis-server
+ - postgresql-server-dev-9.3
