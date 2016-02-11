@@ -5,7 +5,7 @@ pip:
  - gunicorn
  - jinja2
 dependencies:
- - libjpeg
+ - libjpeg62
  - zlib
  - memcached
  - nginx
