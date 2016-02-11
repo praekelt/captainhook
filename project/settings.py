@@ -196,3 +196,8 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.dummy.DummyCache",
     }
 }
+
+SLACK_TOKEN = "xoxb-18589237378-8aoRddJJjaSz9J3NFWrZyuBy"
+
+import djcelery
+djcelery.setup_loader()

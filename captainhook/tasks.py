@@ -1,17 +1,24 @@
+import os
 import sys
 import csv
+from tempfile import mkdtemp
+from shutil import rmtree
+import subprocess
 
 import requests
-import dateutil
+from dateutil import parser
 from celery.task import task
+from celery import shared_task
+from celery.result import ResultSet
+from celery import group, chord
+from slacker import Slacker
 
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
+from django.conf import settings
 
-from captainhook.models import Hook
 
-
-@task(max_retries=0, ignore_result=True)
+@shared_task
 def get_url(url, user_agent):
     headers = {"User-Agent": user_agent}
     try:
@@ -20,10 +27,58 @@ def get_url(url, user_agent):
         print "Couldn't fetch %s" % url
 
 
+@shared_task
+def replay_complete_callback(results, hook_id, payload):
 
-@task(max_retries=0, ignore_result=True)
-def replay(hook_id):
+    # Prevent circular import
+    from captainhook.models import Hook
+
     hook = Hook.objects.get(id=hook_id)
+
+    if hook.script_after:
+        pth = mkdtemp()
+        try:
+            script = os.path.join(pth, "after.sh")
+            fp = open(script, "w")
+            fp.write(hook.script_after)
+            fp.close()
+            os.chmod(script, 0755)
+            subprocess.call(["/bin/bash", script])
+            out = subprocess.check_output(["/bin/bash", script])
+            fp = open('/tmp/captainhook.log', 'w')
+            fp.write("%s\n" % str(payload))
+            fp.close()
+        finally:
+            if pth:
+                rmtree(pth)
+
+    slack_token = getattr(settings, "SLACK_TOKEN", None)
+    if hook.slack_channel and slack_token:
+        message = "%s:\n%s" % (hook.site_root.split('//')[-1], out)
+        slack = Slacker(slack_token)
+        slack.chat.post_message("#" + hook.slack_channel.lstrip("#"), message, as_user=True)
+
+
+def replay(hook_id, payload):
+
+    # Prevent circular import
+    from captainhook.models import Hook
+
+    hook = Hook.objects.get(id=hook_id)
+
+    pth = mkdtemp()
+    if hook.script_before:
+        try:
+            script = os.path.join(pth, "before.sh")
+            fp = open(script, "w")
+            fp.write(hook.script_before)
+            fp.close()
+            os.chmod(script, 0755)
+            subprocess.call(["/bin/bash", script])
+        finally:
+            if pth:
+                rmtree(pth)
+
     now = timezone.now()
     # todo: softcode
     fieldnames=[
@@ -44,18 +99,21 @@ def replay(hook_id):
     reader = csv.DictReader(hook.replay_log, fieldnames=fieldnames, delimiter=" ", quotechar='"')
     reader = list(reader)[-hook.number_to_replay:]
     fp.close()
-    processed = []
     first_diff = None
+    todo = []
     for row in reader:
         method, url, b = row["path_raw"].split()
         if method.lower() not in ("get", "head"):
             continue
         sent_raw = "%s %s:%s:%s" % tuple(row["datetime_a"].lstrip("[").split(":"))\
             + " " + row["datetime_b"].rstrip("]")
-        sent = dateutil.parser.parse(sent_raw)
+        sent = parser.parse(sent_raw)
         if first_diff is None:
             first_diff = (now - sent).seconds + 1
-        get_url.apply_async(
-            (hook.site_root.rstrip("/") + url, row["user_agent"] + " #pk1"),
-            countdown=(first_diff - (now - sent).seconds) / hook.speedup_factor
-        )
+        todo.append((
+            hook.site_root.rstrip("/") + url,
+            row["user_agent"] + " #pk1",
+            (first_diff - (now - sent).seconds) / hook.speedup_factor
+        ))
+
+    return chord(get_url.s(a, b).set(countdown=c) for a, b, c in todo)(replay_complete_callback.s(hook_id, payload)).get()
