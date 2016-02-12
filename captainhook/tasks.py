@@ -6,6 +6,7 @@ from shutil import rmtree
 import subprocess
 
 import requests
+from requests.auth import HTTPBasicAuth
 from dateutil import parser
 from celery.task import task
 from celery import shared_task
