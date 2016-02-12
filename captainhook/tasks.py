@@ -19,10 +19,10 @@ from django.conf import settings
 
 
 @shared_task
-def get_url(url, user_agent):
+def get_url(url, user_agent, auth=None):
     headers = {"User-Agent": user_agent}
     try:
-        r = requests.get(url, headers=headers)
+        r = requests.get(url, headers=headers, auth=auth)
     except requests.ConnectionError:
         print "Couldn't fetch %s" % url
 
@@ -116,4 +116,8 @@ def replay(hook_id, payload):
             (first_diff - (now - sent).seconds) / hook.speedup_factor
         ))
 
-    return chord(get_url.s(a, b).set(countdown=c) for a, b, c in todo)(replay_complete_callback.s(hook_id, payload)).get()
+    auth = None
+    if hook.basic_auth_username and hook.basic_auth_password:
+        auth=HTTPBasicAuth(hook.basic_auth_username, hook.basic_auth_password)
+
+    return chord(get_url.s(a, b, auth=auth).set(countdown=c) for a, b, c in todo)(replay_complete_callback.s(hook_id, payload)).get()
