@@ -60,6 +60,7 @@ def replay_complete_callback(results, hook_id, payload):
             slack.chat.post_message("#" + hook.slack_channel.lstrip("#"), message, as_user=True)
 
 
+@shared_task(ignore_result=True)
 def replay(hook_id, payload):
 
     # Prevent circular import

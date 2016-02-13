@@ -53,7 +53,7 @@ class Hook(models.Model):
 
     def execute(self, payload):
         on_hook_received.send(self, payload=payload)
-        replay(self.id, payload)
+        replay.delay(self.id, payload)
 
     def __unicode__(self):
         return self.name
