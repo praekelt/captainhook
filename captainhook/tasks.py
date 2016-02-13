@@ -11,7 +11,7 @@ from dateutil import parser
 from celery.task import task
 from celery import shared_task
 from celery.result import ResultSet
-from celery import group, chord
+from celery import group
 from slacker import Slacker
 
 from django.core.management.base import BaseCommand, CommandError
@@ -19,7 +19,7 @@ from django.utils import timezone
 from django.conf import settings
 
 
-@shared_task
+@shared_task()
 def get_url(url, user_agent, auth=None):
     headers = {"User-Agent": user_agent}
     try:
@@ -28,7 +28,7 @@ def get_url(url, user_agent, auth=None):
         print "Couldn't fetch %s" % url
 
 
-@shared_task
+@shared_task()
 def replay_complete_callback(results, hook_id, payload):
 
     # Prevent circular import
@@ -53,11 +53,11 @@ def replay_complete_callback(results, hook_id, payload):
             if pth:
                 rmtree(pth)
 
-    slack_token = getattr(settings, "SLACK_TOKEN", None)
-    if hook.slack_channel and slack_token:
-        message = "%s:\n%s" % (hook.site_root.split('//')[-1], out)
-        slack = Slacker(slack_token)
-        slack.chat.post_message("#" + hook.slack_channel.lstrip("#"), message, as_user=True)
+        slack_token = getattr(settings, "SLACK_TOKEN", None)
+        if hook.slack_channel and slack_token:
+            message = "%s:\n%s" % (hook.site_root.split('//')[-1], out)
+            slack = Slacker(slack_token)
+            slack.chat.post_message("#" + hook.slack_channel.lstrip("#"), message, as_user=True)
 
 
 def replay(hook_id, payload):
@@ -99,7 +99,6 @@ def replay(hook_id, payload):
     ]
     reader = csv.DictReader(hook.replay_log, fieldnames=fieldnames, delimiter=" ", quotechar='"')
     reader = list(reader)[-hook.number_to_replay:]
-    fp.close()
     first_diff = None
     todo = []
     for row in reader:
@@ -121,4 +120,8 @@ def replay(hook_id, payload):
     if hook.basic_auth_username and hook.basic_auth_password:
         auth=HTTPBasicAuth(hook.basic_auth_username, hook.basic_auth_password)
 
-    return chord(get_url.s(a, b, auth=auth).set(countdown=c) for a, b, c in todo)(replay_complete_callback.s(hook_id, payload)).get()
+    gr = group(
+        get_url.s(a, b, auth=auth).set(countdown=c) for a, b, c in todo
+    )
+    gr = gr| replay_complete_callback.s(hook_id, payload)
+    gr()
