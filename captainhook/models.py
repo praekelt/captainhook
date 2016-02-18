@@ -37,12 +37,22 @@ class Hook(models.Model):
     script_before = models.TextField(
         null=True,
         blank=True,
-        help_text="Bash to execute before the replay starts. This typically contains commands that run within SSH."
+        help_text="""Bash to execute before the replay starts. This\
+typically contains commands that run within SSH."""
     )
     script_after = models.TextField(
         null=True,
         blank=True,
-        help_text="Bash to execute after the replay has ended. This typically contains commands that run within SSH."
+        help_text="""Bash to execute after the replay has ended. This\
+typically contains commands that run within SSH. The output is posted\
+to Slack if channel is set."""
+    )
+    script_log = models.TextField(
+        null=True,
+        blank=True,
+        help_text="""Bash to execute at the end of the process. It must \
+return JSON in string format. This typically contains commands that run\
+within SSH."""
     )
     slack_channel = models.CharField(
         max_length=255,
@@ -57,3 +67,16 @@ class Hook(models.Model):
 
     def __unicode__(self):
         return self.name
+
+
+class Log(models.Model):
+    hook = models.ForeignKey(Hook)
+    created = models.DateTimeField(auto_now=True)
+    number_to_replay = models.PositiveIntegerField(default=1000)
+    speedup_factor = models.PositiveIntegerField(default=1)
+    raw_json = models.TextField()
+
+    def __unicode__(self):
+        return "%s - %s" % (
+            self.hook.name, self.created.strftime("%Y-%m-%d %H:%M:%S")
+        )

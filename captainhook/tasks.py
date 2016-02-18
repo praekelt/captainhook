@@ -4,6 +4,7 @@ import csv
 from tempfile import mkdtemp
 from shutil import rmtree
 import subprocess
+import json
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -32,7 +33,7 @@ def get_url(url, user_agent, auth=None):
 def replay_complete_callback(results, hook_id, payload):
 
     # Prevent circular import
-    from captainhook.models import Hook
+    from captainhook.models import Hook, Log
 
     hook = Hook.objects.get(id=hook_id)
 
@@ -46,18 +47,42 @@ def replay_complete_callback(results, hook_id, payload):
             os.chmod(script, 0755)
             subprocess.call(["/bin/bash", script])
             out = subprocess.check_output(["/bin/bash", script])
-            fp = open('/tmp/captainhook.log', 'w')
-            fp.write("%s\n" % str(payload))
-            fp.close()
         finally:
             if pth:
                 rmtree(pth)
 
-        slack_token = getattr(settings, "SLACK_TOKEN", None)
-        if hook.slack_channel and slack_token:
-            message = "%s:\n%s" % (hook.site_root.split('//')[-1], out)
-            slack = Slacker(slack_token)
-            slack.chat.post_message("#" + hook.slack_channel.lstrip("#"), message, as_user=True)
+        if out:
+            slack_token = getattr(settings, "SLACK_TOKEN", None)
+            if hook.slack_channel and slack_token:
+                message = "%s:\n%s" % (hook.site_root.split('//')[-1], out)
+                slack = Slacker(slack_token)
+                slack.chat.post_message("#" + hook.slack_channel.lstrip("#"), message, as_user=True)
+
+    if hook.script_log:
+        pth = mkdtemp()
+        try:
+            script = os.path.join(pth, "log.sh")
+            fp = open(script, "w")
+            fp.write(hook.script_log)
+            fp.close()
+            os.chmod(script, 0755)
+            subprocess.call(["/bin/bash", script])
+            out = subprocess.check_output(["/bin/bash", script])
+            if out:
+                try:
+                    pretty_json = json.dumps(json.loads(out), indent=4)
+                except ValueError:
+                    pass
+                else:
+                    Log.objects.create(
+                        hook=hook,
+                        number_to_replay=hook.number_to_replay,
+                        speedup_factor=hook.speedup_factor,
+                        raw_json=pretty_json
+                    )
+        finally:
+            if pth:
+                rmtree(pth)
 
 
 @shared_task(ignore_result=True)
