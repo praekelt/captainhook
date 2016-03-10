@@ -107,22 +107,40 @@ def replay(hook_id, payload):
                 rmtree(pth)
 
     now = timezone.now()
-    # todo: softcode
-    fieldnames=[
-        "ip",
-        "dc1",
-        "cache_result",
-        "datetime_a",
-        "datetime_b",
-        "request_time",
-        "upstream_time",
-        "dc2",
-        "path_raw",
-        "status_code",
-        "size_bytes",
-        "header_url",
-        "user_agent"
-    ]
+
+    # todo: softcode properly. This is hacky.
+    if "router" in hook.replay_log.name:
+        # Our router format
+        fieldnames=[
+            "ip",
+            "dc1",
+            "cache_result",
+            "datetime_a",
+            "datetime_b",
+            "request_time",
+            "upstream_time",
+            "dc2",
+            "path_raw",
+            "status_code",
+            "size_bytes",
+            "header_url",
+            "user_agent"
+        ]
+    else:
+        # Normal nginx format
+        fieldnames=[
+            "ip",
+            "dc1",
+            "dc2",
+            "datetime_a",
+            "datetime_b",
+            "path_raw",
+            "status_code",
+            "size_bytes",
+            "header_url",
+            "user_agent"
+        ]
+
     reader = csv.DictReader(hook.replay_log, fieldnames=fieldnames, delimiter=" ", quotechar='"')
     reader = list(reader)[-hook.number_to_replay:]
     first_diff = None
