@@ -25,6 +25,7 @@ def get_url(url, user_agent, auth=None):
     headers = {"User-Agent": user_agent}
     try:
         r = requests.get(url, headers=headers, auth=auth)
+        del r
     except requests.ConnectionError:
         print "Couldn't fetch %s" % url
 
